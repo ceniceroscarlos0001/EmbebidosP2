@@ -1,60 +1,36 @@
 #!/usr/bin/env python3
 import serial
 import socket
-from datetime import datetime
 
-# ============ CONFIGURACIÓN ============
-
-# Puerto serial del Arduino
-SERIAL_PORT = '/dev/ttyACM0'
-BAUDRATE = 9600
-
-# IP y puerto de la PC host con Windows
-HOST_IP = '10.104.129.64'  # <-- Cambia esto por la IP de tu PC con Windows
-HOST_PORT = 65432
-
-# Archivo para guardar datos localmente
-LOG_FILE = "lecturas_arduino.txt"
-
-# ============ INICIALIZACIÓN SERIAL ============
-ser = serial.Serial(SERIAL_PORT, BAUDRATE, timeout=1)
+# Configuración del puerto serial (Arduino)
+ser = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
 ser.reset_input_buffer()
 
-# ============ CONEXIÓN TCP/IP ============
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-print(f"Conectando a {HOST_IP}:{HOST_PORT}...")
+# Configuración del socket TCP
+HOST = "192.168.2.3"  # Dirección IP de la PC Ubuntu
+PORT = 5000           # Puerto TCP
 
 try:
-    client_socket.connect((HOST_IP, HOST_PORT))
-    print("✅ Conexión establecida con la PC host.")
+    # Crear socket TCP
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((HOST, PORT))
+    print(f"[INFO] Conectado al servidor TCP {HOST}:{PORT}")
 except Exception as e:
-    print(f"❌ No se pudo conectar con la PC host: {e}")
+    print(f"[ERROR] No se pudo conectar al servidor: {e}")
     exit(1)
 
-# ============ BUCLE PRINCIPAL ============
+# Bucle de lectura y envío
 try:
-    with open(LOG_FILE, "a") as log_file:
-        while True:
-            if ser.in_waiting > 0:
-                line = ser.readline().decode('utf-8').strip()
-
-                if line:
-                    # Agrega marca de tiempo legible al archivo
-                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    log_entry = f"{timestamp} - {line}"
-                    print(log_entry)
-
-                    # Guardar en archivo
-                    log_file.write(log_entry + "\n")
-                    log_file.flush()
-
-                    # Enviar por TCP
-                    try:
-                        client_socket.sendall((line + "\n").encode())
-                    except Exception as e:
-                        print(f"⚠️ Error al enviar por TCP: {e}")
+    while True:
+        if ser.in_waiting > 0:
+            line = ser.readline().decode('utf-8').strip()
+            if ',' in line:
+                binario, timestamp = line.split(',')
+                mensaje = f"{binario},{timestamp}\n"
+                print(f"Enviando: {mensaje.strip()}")
+                sock.sendall(mensaje.encode('utf-8'))
 except KeyboardInterrupt:
-    print("\n🛑 Interrumpido por el usuario.")
+    print("\n[INFO] Interrupción por teclado. Cerrando conexión.")
 finally:
-    client_socket.close()
+    sock.close()
     ser.close()
