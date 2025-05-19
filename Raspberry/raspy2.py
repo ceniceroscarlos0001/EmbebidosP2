@@ -10,7 +10,7 @@ SERIAL_PORT = '/dev/ttyACM0'
 BAUDRATE = 9600
 
 # IP y puerto de la PC host con Windows
-HOST_IP = '192.168.1.100'  # <-- Cambia esto por la IP de tu PC con Windows
+HOST_IP = '10.104.129.64'  # <-- Cambia esto por la IP de tu PC con Windows
 HOST_PORT = 65432
 
 # Archivo para guardar datos localmente
